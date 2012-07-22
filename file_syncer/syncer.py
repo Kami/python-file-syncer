@@ -43,7 +43,8 @@ class FileSyncer(object):
             raise ValueError('Directory %s doesn\'t exist' %
                              (self._directory))
 
-        self._logger.info('Using provider: %(name)s', {'name': provider_cls.name})
+        self._logger.info('Using provider: %(name)s',
+                          {'name': provider_cls.name})
 
         self._setup_cache_path()
         self._setup_container()

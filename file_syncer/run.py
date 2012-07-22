@@ -28,7 +28,8 @@ def run():
                       help='Local directory to sync')
     parser.add_option('--cache-path', dest='cache_path',
                       default=os.path.expanduser('~/.file_syncer'),
-                      help='Directory where a settings and cached manifest files are stored')
+                      help='Directory where a settings and cached manifest ' +
+                           'files are stored')
     parser.add_option('--concurrency', dest='concurrency', default=10,
                       help='File upload concurrency')
 
