@@ -1,1 +1,8 @@
+__all__ = [
+    'VALID_LOG_LEVELS',
+    'MANIFEST_FILE'
+]
+
 VALID_LOG_LEVELS = ['DEBUG', 'ERROR', 'FATAL', 'CRITICAL', 'INFO', 'WARNING']
+
+MANIFEST_FILE = 'manifest.json'

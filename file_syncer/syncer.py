@@ -1,6 +1,10 @@
 import time
 import os
 import hashlib
+import copy
+
+from StringIO import StringIO
+from itertools import chain
 
 try:
     import simplejson as json
@@ -17,6 +21,7 @@ from libcloud.storage.types import ObjectDoesNotExistError
 monkey.patch_all()
 
 from file_syncer.file_lock import FileLock
+from file_syncer.constants import MANIFEST_FILE
 
 
 class FileSyncer(object):
@@ -30,6 +35,9 @@ class FileSyncer(object):
         self._cache_path = cache_path
         self._logger = logger
         self._concurrency = concurrency
+
+        self._uploaded = []
+        self._removed = []
 
         if not os.path.exists(self._directory):
             raise ValueError('Directory %s doesn\'t exist' %
@@ -102,42 +110,54 @@ class FileSyncer(object):
             # 3 - Upload manifest
 
             for item in actions['to_remove']:
-                func = lambda name: self._remove_object(name=name)
-                pool.spawn(func, item['remote_name'])
+                func = lambda item: self._remove_object(item=item)
+                pool.spawn(func, item)
 
             pool.join()
 
             for item in actions['to_upload']:
-                func = lambda file_path, name: self._upload_object(file_path=file_path,
-                                                   name=name)
-                pool.spawn(func, item['path'], item['remote_name'])
+                func = lambda item: self._upload_object(item=item)
+                pool.spawn(func, item)
 
             pool.join()
 
             # TODO: Only add successfully uploaded files.
-            self._upload_manifest(json.dumps(local_files))
+            manifest = self._generate_manifest(remote_files=remote_files)
+            self._upload_manifest(json.dumps(manifest))
 
-            took = time.time() - time_start
+            took = (time.time() - time_start)
             self._logger.info('Synchronization complete, took: %(took)0.2f' +
                               ' seconds', {'took': took})
 
     def _get_item_remote_name(self, name, file_path):
         return file_path.replace(self._directory, '')
 
+    def _generate_manifest(self, remote_files):
+        manifest = copy.deepcopy(remote_files)
+
+        for item in self._uploaded:
+            manifest[item['remote_name']] = item
+
+        for item in self._removed:
+            if item['remote_name'] in manifest:
+                del manifest[item['remote_name']]
+
+        return manifest
+
     def _upload_manifest(self, data):
         driver = self._get_driver_instance()
-        name = 'manifest.json'
-        manifest_path = os.path.join(self._cache_path, name)
+        name = MANIFEST_FILE
+        container = Container(name=self._container_name, extra=None, driver=driver)
+        iterator = StringIO(data)
+        driver.upload_object_via_stream(iterator=iterator, container=container,
+                                        object_name=name)
 
-        with open(manifest_path, 'w') as fp:
-            fp.write(data)
-
-        container = Container(name=self._container_name, extra={}, driver=driver)
-        driver.upload_object(file_path=manifest_path, container=container,
-                             object_name=name)
-
-    def _remove_object(self, name):
+    def _remove_object(self, item):
         driver = self._get_driver_instance()
+        name = item['remote_name']
+
+        self._logger.debug('Removing object: %(name)s', {'name': name})
+
         container = Container(name=self._container_name, extra={}, driver=driver)
         obj = Object(name=name, size=None, hash=None, extra=None,
                      meta_data=None, container=container, driver=driver)
@@ -149,10 +169,14 @@ class FileSyncer(object):
                                {'name': name, 'error': str(e)})
             return
 
+        self._removed.append(item)
         self._logger.debug('Object removed: %(name)s', {'name': name})
 
-    def _upload_object(self, file_path, name):
+    def _upload_object(self, item):
         driver = self._get_driver_instance()
+        name = item['remote_name']
+        file_path = item['path']
+
         self._logger.debug('Uploading object: %(name)s', {'name': name})
 
         extra = {'content_type': 'application/octet-stream'}
@@ -166,14 +190,16 @@ class FileSyncer(object):
                                {'name': name, 'error': str(e)})
             return
 
+        self._uploaded.append(item)
         self._logger.debug('Object uploaded: %(name)s', {'name': name})
 
     def _get_local_files(self, directory):
         """
         Recursively find all the files in a directory.
+
         @rtype C{dict}
         """
-        results = []
+        result = {}
 
         base_path = os.path.abspath(directory)
         for (dirpath, dirnames, filenames) in os.walk(directory):
@@ -186,9 +212,9 @@ class FileSyncer(object):
 
                 item = {'name': name, 'remote_name': remote_name, 'path': file_path,
                         'last_modified': mtime, 'md5_hash': md5_hash}
-                results.append(item)
+                result[remote_name] = item
 
-        return results
+        return result
 
     def _get_remote_files(self):
         """
@@ -198,11 +224,11 @@ class FileSyncer(object):
 
         try:
             obj = driver.get_object(container_name=self._container_name,
-                                    object_name='manifest.json')
+                                    object_name=MANIFEST_FILE)
         except ObjectDoesNotExistError:
             self._logger.debug('Manifest doesn\'t exist, assuming that ' +
                                'there are no remote files')
-            return []
+            return {}
 
         iterator = driver.download_object_as_stream(obj=obj)
         data = exhaust_iterator(iterator=iterator)
@@ -214,44 +240,35 @@ class FileSyncer(object):
 
         return parsed
 
-    def _get_item(self, item_path, items):
-        for item in items:
-            if item['path'] == item_path:
-                return item
-
-        return None
-
     def _get_differences(self, local_files, remote_files):
         """
         Return differences between a local and remote copy.
 
         @rtype C{dict} A dictionary with the following keys:
 
-        added - a list of files which have been added local.
-        removed - a list of local files which have been removed.
-        changed - a list of local files which have changed.
+        added - files which have been added locally.
+        removed - files which have been removed.
+        modified - files which have been modified.
         """
-        result = {'added': [], 'removed': [], 'changed': []}
+        result = {'added': {}, 'removed': {}, 'modified': {}}
 
-        # TODO: Make search more efficient
-        for local_item in local_files:
-            remote_item = self._get_item(item_path=local_item['path'],
-                                         items=remote_files)
+        for name, local_item in local_files.iteritems():
+            remote_item = remote_files.get(name, None)
 
-            if not remote_item:
+            if remote_item is None:
                 # New file
-                result['added'].append(local_item)
+                result['added'][name] = local_item
             elif local_item['last_modified'] > remote_item['last_modified']:
-                # Local file has been changed
-                result['changed'].append(local_item)
+                # Local file has been modified
+                result['modified'][name] = local_item
 
-        for remote_item in remote_files:
-            local_item = self._get_item(item_path=remote_item['path'],
-                                        items=local_files)
+        for name, remote_item in remote_files.iteritems():
+            name = remote_item['remote_name']
+            local_item = local_files.get(name, None)
 
             if not local_item:
                 # File has been deleted locally
-                result['removed'].append(remote_item)
+                result['removed'][name] = remote_item
 
         return result
 
@@ -262,13 +279,11 @@ class FileSyncer(object):
         """
         result = {'to_upload': [], 'to_remove': []}
 
-        for item in differences['added']:
+        for item in chain(differences['added'].values(),
+                          differences['modified'].values()):
             result['to_upload'].append(item)
 
-        for item in differences['changed']:
-            result['to_upload'].append(item)
-
-        for item in differences['removed']:
+        for item in differences['removed'].values():
             result['to_remove'].append(item)
 
         return result
