@@ -141,15 +141,31 @@ class FileSyncer(object):
         container = Container(name=self._container_name, extra={}, driver=driver)
         obj = Object(name=name, size=None, hash=None, extra=None,
                      meta_data=None, container=container, driver=driver)
-        driver.delete_object(obj=obj)
+
+        try:
+            driver.delete_object(obj=obj)
+        except Exception, e:
+            self._logger.error('Failed to remove object "%(name)s": %(error)s',
+                               {'name': name, 'error': str(e)})
+            return
+
         self._logger.debug('Object removed: %(name)s', {'name': name})
 
     def _upload_object(self, file_path, name):
         driver = self._get_driver_instance()
         self._logger.debug('Uploading object: %(name)s', {'name': name})
-        container = Container(name=self._container_name, extra={}, driver=driver)
-        driver.upload_object(file_path=file_path, container=container,
-                             object_name=name, extra=None)
+
+        extra = {'content_type': 'application/octet-stream'}
+        container = Container(name=self._container_name, extra=None, driver=driver)
+
+        try:
+            driver.upload_object(file_path=file_path, container=container,
+                                 object_name=name, extra=extra)
+        except Exception, e:
+            self._logger.error('Failed to upload object "%(name)s": %(error)s',
+                               {'name': name, 'error': str(e)})
+            return
+
         self._logger.debug('Object uploaded: %(name)s', {'name': name})
 
     def _get_local_files(self, directory):
