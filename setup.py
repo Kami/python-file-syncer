@@ -7,7 +7,7 @@ from subprocess import call
 
 
 class Pep8Command(Command):
-    description = "run pep8 script"
+    description = 'run pep8 script'
     user_options = []
 
     def initialize_options(self):
@@ -33,6 +33,7 @@ class Pep8Command(Command):
 setup(
     name='file_syncer',
     version='0.1.0',
+    scripts=[os.path.join(os.getcwd(), 'bin/file-syncer')],
     packages=[
         'file_syncer'
     ],
@@ -46,6 +47,7 @@ setup(
     url='https://github.com/Kami/python-file-syncer/',
     license='Apache License (2.0)',
     author='Tomaz Muraus',
+    author_email='tomaz+pypi@tomaz.me',
     description='Python program which synchronizes files from a local ' +
                  'directory to one of the storage providers supported by ' +
                  'Libcloud.',
