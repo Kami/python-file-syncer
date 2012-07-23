@@ -10,17 +10,20 @@ from file_syncer.log import get_logger
 from file_syncer.constants import VALID_LOG_LEVELS
 from file_syncer.syncer import FileSyncer
 
+SUPPORTED_PROVIDERS = [p for p in Provider.__dict__.keys() if not
+                       p.startswith('__')]
+PROVIDER_MAP = dict([(k, v) for k, v in Provider.__dict__.iteritems()
+                     if not p.startswith('__')])
 
 def run():
     usage = 'usage: %prog --username=<api username> --key=<api key> [options]'
     parser = OptionParser(usage=usage)
-    parser.add_option('--provider', dest='provider',
-                  default=Provider.CLOUDFILES_US,
-                  help='Provider to use')
+    parser.add_option('--provider', dest='provider', default='CLOUDFILES_US',
+                      help='Provider to use')
     parser.add_option('--api-username', dest='api_username',
-                  help='API username')
+                      help='API username')
     parser.add_option('--api-key', dest='api_key',
-                  help='API key')
+                      help='API key')
     parser.add_option('--container-name', dest='container_name',
                       default='file_syncer',
                       help='Name of the container storing the files')
@@ -38,10 +41,12 @@ def run():
 
     (options, args) = parser.parse_args()
 
-    provider = Provider.CLOUDFILES_US
+    # Set up provider
+    if options.provider not in SUPPORTED_PROVIDERS:
+        raise ValueError('Invalid provider: %s. Valid providers are: %s' %
+                         (options.provider, ', '.join(SUPPORTED_PROVIDERS)))
 
-    if provider is None:
-        raise ValueError('Invalid provider: %s' % (options.provider))
+    provider = PROVIDER_MAP[options.provider]
 
     # Set up logger
     log_level = options.log_level.upper()
