@@ -14,15 +14,18 @@ SUPPORTED_PROVIDERS = [p for p in Provider.__dict__.keys() if not
                        p.startswith('__')]
 PROVIDER_MAP = dict([(k, v) for k, v in Provider.__dict__.iteritems()
                      if not p.startswith('__')])
+REQUIRED_OPTIONS = [('username', 'api_username'), ('key', 'api_key'),
+                    ('container-name', 'container_name')]
+
 
 def run():
     usage = 'usage: %prog --username=<api username> --key=<api key> [options]'
     parser = OptionParser(usage=usage)
     parser.add_option('--provider', dest='provider', default='CLOUDFILES_US',
                       help='Provider to use')
-    parser.add_option('--api-username', dest='api_username',
+    parser.add_option('--username', dest='api_username',
                       help='API username')
-    parser.add_option('--api-key', dest='api_key',
+    parser.add_option('--key', dest='api_key',
                       help='API key')
     parser.add_option('--container-name', dest='container_name',
                       default='file_syncer',
@@ -40,6 +43,10 @@ def run():
                       help='Log level')
 
     (options, args) = parser.parse_args()
+
+    for option_name, key in REQUIRED_OPTIONS:
+        if not getattr(options, key, None):
+            raise ValueError('Missing required argument: ' + option_name)
 
     # Set up provider
     if options.provider not in SUPPORTED_PROVIDERS:
