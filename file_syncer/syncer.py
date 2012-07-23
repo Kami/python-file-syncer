@@ -122,7 +122,6 @@ class FileSyncer(object):
 
             pool.join()
 
-            # TODO: Only add successfully uploaded files.
             manifest = self._generate_manifest(remote_files=remote_files)
             self._upload_manifest(json.dumps(manifest))
 
