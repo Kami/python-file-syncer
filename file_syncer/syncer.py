@@ -105,16 +105,13 @@ class FileSyncer(object):
                               {'to_remove': len(actions['to_remove']),
                                'to_upload': len(actions['to_upload'])})
 
-            # Synchronization is performed in three steps:
-            # 1 - Remove removed or changed files
-            # 2 - Upload new or changed files
-            # 3 - Upload manifest
+            # Synchronization is performed in two steps:
+            # 1 - Upload new or changed files and remove deleted ones
+            # 2 - Upload manifest
 
             for item in actions['to_remove']:
                 func = lambda item: self._remove_object(item=item)
                 pool.spawn(func, item)
-
-            pool.join()
 
             for item in actions['to_upload']:
                 func = lambda item: self._upload_object(item=item)
