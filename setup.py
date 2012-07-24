@@ -1,9 +1,20 @@
 import os
 import sys
 
+from os.path import join as pjoin
+
 from setuptools import setup
 from setuptools import Command
 from subprocess import call
+
+
+def read_version_string():
+    version = None
+    sys.path.insert(0, pjoin(os.getcwd()))
+    from file_syncer import __version__
+    version = __version__
+    sys.path.pop(0)
+    return version
 
 
 class Pep8Command(Command):
@@ -32,7 +43,7 @@ class Pep8Command(Command):
 
 setup(
     name='file_syncer',
-    version='0.1.1',
+    version=read_version_string(),
     scripts=[os.path.join(os.getcwd(), 'bin/file-syncer')],
     packages=[
         'file_syncer'
