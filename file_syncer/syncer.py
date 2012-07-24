@@ -144,7 +144,8 @@ class FileSyncer(object):
     def _upload_manifest(self, data):
         driver = self._get_driver_instance()
         name = MANIFEST_FILE
-        container = Container(name=self._container_name, extra=None, driver=driver)
+        extra = {'content_type': 'application/json'}
+        container = Container(name=self._container_name, extra=extra, driver=driver)
         iterator = StringIO(data)
         driver.upload_object_via_stream(iterator=iterator, container=container,
                                         object_name=name)
