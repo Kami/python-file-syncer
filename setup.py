@@ -32,7 +32,7 @@ class Pep8Command(Command):
 
 setup(
     name='file_syncer',
-    version='0.1.0',
+    version='0.1.1',
     scripts=[os.path.join(os.getcwd(), 'bin/file-syncer')],
     packages=[
         'file_syncer'
