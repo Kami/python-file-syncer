@@ -158,10 +158,10 @@ class FileSyncer(object):
         driver = self._get_driver_instance()
         name = MANIFEST_FILE
         extra = {'content_type': 'application/json'}
-        container = Container(name=self._container_name, extra=extra, driver=driver)
+        container = Container(name=self._container_name, extra=None, driver=driver)
         iterator = StringIO(data)
-        driver.upload_object_via_stream(iterator=iterator, container=container,
-                                        object_name=name)
+        driver.upload_object_via_stream(iterator=iterator, extra=extra,
+                                        container=container, object_name=name)
 
     def _remove_object(self, item):
         driver = self._get_driver_instance()
