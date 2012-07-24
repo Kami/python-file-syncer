@@ -2,6 +2,7 @@ import time
 import os
 import hashlib
 import copy
+import fnmatch
 
 from StringIO import StringIO
 from itertools import chain
@@ -26,13 +27,15 @@ from file_syncer.constants import MANIFEST_FILE
 
 class FileSyncer(object):
     def __init__(self, directory, provider_cls, username, api_key,
-                 container_name, cache_path, logger, concurrency=20):
+                 container_name, cache_path, exclude_patterns,
+                 logger, concurrency=20):
         self._directory = directory
         self._provider_cls = provider_cls
         self._username = username
         self._api_key = api_key
         self._container_name = container_name
         self._cache_path = cache_path
+        self._exclude_patterns = exclude_patterns
         self._logger = logger
         self._concurrency = concurrency
 
@@ -76,6 +79,16 @@ class FileSyncer(object):
     def _get_driver_instance(self):
         driver = self._provider_cls(self._username, self._api_key)
         return driver
+
+    def _include_file(self, file_name):
+        """
+        Return True if the file should be included, False otherwise.
+        """
+        for pattern in self._exclude_patterns:
+            if fnmatch.fnmatch(file_name, pattern):
+                return
+
+        return True
 
     def sync(self):
         """
@@ -202,9 +215,16 @@ class FileSyncer(object):
         base_path = os.path.abspath(directory)
         for (dirpath, dirnames, filenames) in os.walk(directory):
             for name in filenames:
+
                 file_path = os.path.join(base_path, dirpath, name)
                 remote_name = self._get_item_remote_name(name=name,
                                                          file_path=file_path)
+
+                if not self._include_file(remote_name):
+                    self._logger.debug('File %(name)s is excluded, skipping it', 
+                                       {'name': name})
+                    continue
+
                 mtime = os.path.getmtime(file_path)
                 md5_hash = None
 
