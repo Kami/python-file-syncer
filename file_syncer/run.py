@@ -15,7 +15,8 @@ SUPPORTED_PROVIDERS = [p for p in Provider.__dict__.keys() if not
 PROVIDER_MAP = dict([(k, v) for k, v in Provider.__dict__.iteritems()
                      if not p.startswith('__')])
 REQUIRED_OPTIONS = [('username', 'api_username'), ('key', 'api_key'),
-                    ('container-name', 'container_name')]
+                    ('container-name', 'container_name'),
+                    ('directory', 'directory')]
 
 
 def run():
