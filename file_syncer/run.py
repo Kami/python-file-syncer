@@ -15,7 +15,8 @@ SUPPORTED_PROVIDERS = [p for p in Provider.__dict__.keys() if not
 PROVIDER_MAP = dict([(k, v) for k, v in Provider.__dict__.iteritems()
                      if not p.startswith('__')])
 REQUIRED_OPTIONS = [('username', 'api_username'), ('key', 'api_key'),
-                    ('container-name', 'container_name')]
+                    ('container-name', 'container_name'),
+                    ('directory', 'directory')]
 
 
 def run():
@@ -38,7 +39,9 @@ def run():
                            'files are stored')
     parser.add_option('--concurrency', dest='concurrency', default=10,
                       help='File upload concurrency')
-
+    parser.add_option('--exclude', dest='exclude',
+                      help='Comma separated list of file name patterns to ' +
+                           'exclude')
     parser.add_option('--log-level', dest='log_level', default='INFO',
                       help='Log level')
 
@@ -67,6 +70,8 @@ def run():
     logger = get_logger(handler=logging.StreamHandler(), level=level)
 
     directory = os.path.expanduser(options.directory)
+    exclude_patterns = options.exclude or ''
+    exclude_patterns = exclude_patterns.split(',')
 
     syncer = FileSyncer(directory=directory,
                         provider_cls=get_driver(provider),
@@ -74,6 +79,7 @@ def run():
                         api_key=options.api_key,
                         container_name=options.container_name,
                         cache_path=options.cache_path,
+                        exclude_patterns=exclude_patterns,
                         logger=logger,
                         concurrency=int(options.concurrency))
     syncer.sync()
