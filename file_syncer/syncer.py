@@ -283,7 +283,7 @@ class FileSyncer(object):
 
     def _download_remote_file(self, name):
         """
-        Return a list of files in a container.
+        Download a remote file given a name.
         """
 
         self._logger.debug('Downloading object: %(name)s to %(path)s',
