@@ -28,6 +28,8 @@ def run():
                       help='API username')
     parser.add_option('--key', dest='api_key',
                       help='API key')
+    parser.add_option('--restore', dest='restore', action="store_true",
+                      help='Restore from')
     parser.add_option('--container-name', dest='container_name',
                       default='file_syncer',
                       help='Name of the container storing the files')
@@ -82,4 +84,7 @@ def run():
                         exclude_patterns=exclude_patterns,
                         logger=logger,
                         concurrency=int(options.concurrency))
-    syncer.sync()
+    if options.restore:
+      syncer.restore()
+    else:
+      syncer.sync()
