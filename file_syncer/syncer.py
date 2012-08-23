@@ -139,6 +139,28 @@ class FileSyncer(object):
             self._logger.info('Synchronization complete, took: %(took)0.2f' +
                               ' seconds', {'took': took})
 
+    def restore(self):
+        """
+        Restores a remote container to the file system
+        """
+        digest = hashlib.md5(self._directory).hexdigest()
+        lock_file_path = os.path.join(digest)
+
+        pool = Pool(self._concurrency)
+        with FileLock(lock_file_path, timeout=None):
+            # Ensure that only a single process runs at the same time
+            time_start = time.time()
+
+            for item in self._get_remote_files():
+                func = lambda item: self._download_remote_file(name=item)
+                pool.spawn(func, item)
+
+            pool.join()
+
+            took = (time.time() - time_start)
+            self._logger.info('Synchronization complete, took: %(took)0.2f' +
+                              ' seconds', {'took': took})
+
     def _get_item_remote_name(self, name, file_path):
         return file_path.replace(self._directory, '')
 
@@ -257,6 +279,33 @@ class FileSyncer(object):
             raise Exception('Corrupted manifest, failed to parse it: ' + str(e))
 
         return parsed
+
+
+    def _download_remote_file(self, name):
+        """
+        Download a remote file given a name.
+        """
+
+        self._logger.debug('Downloading object: %(name)s to %(path)s',
+                {'name': name, 'path': self._directory})
+
+        # strip the leading slash if it exists in the object_name
+        local_filename = name
+        if local_filename[0] == '/':
+            local_filename = local_filename[1:]
+
+        driver = self._get_driver_instance()
+        filepath = os.path.join(self._directory, local_filename)
+
+        try:
+            obj = driver.get_object(container_name=self._container_name,
+                                    object_name=name)
+        except ObjectDoesNotExistError:
+            self._logger.debug('Object ' + name + ' doesn\'t exist')
+            return
+
+        driver.download_object(obj=obj, destination_path=filepath,
+                overwrite_existing=True, delete_on_failure=True)
 
     def _get_differences(self, local_files, remote_files):
         """
