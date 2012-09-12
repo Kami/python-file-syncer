@@ -33,6 +33,7 @@ from libcloud.utils.files import exhaust_iterator
 from libcloud.storage.base import Container, Object
 from libcloud.storage.types import ContainerDoesNotExistError
 from libcloud.storage.types import ObjectDoesNotExistError
+from libcloud.common.types import LibcloudError
 
 monkey.patch_all()
 
@@ -43,7 +44,7 @@ from file_syncer.constants import MANIFEST_FILE
 class FileSyncer(object):
     def __init__(self, directory, provider_cls, username, api_key,
                  container_name, cache_path, exclude_patterns,
-                 logger, concurrency=20):
+                 logger, concurrency=20, retry_limit=3):
         self._directory = directory
         self._provider_cls = provider_cls
         self._username = username
@@ -53,6 +54,8 @@ class FileSyncer(object):
         self._exclude_patterns = exclude_patterns
         self._logger = logger
         self._concurrency = concurrency
+        self._retry_limit = retry_limit
+        self._retries = {}
 
         self._uploaded = []
         self._removed = []
@@ -138,11 +141,11 @@ class FileSyncer(object):
             # 2 - Upload manifest
 
             for item in actions['to_remove']:
-                func = lambda item: self._remove_object(item=item)
+                func = lambda item: self._remove_object(item=item, pool=pool)
                 pool.spawn(func, item)
 
             for item in actions['to_upload']:
-                func = lambda item: self._upload_object(item=item)
+                func = lambda item: self._upload_object(item=item, pool=pool)
                 pool.spawn(func, item)
 
             pool.join()
@@ -191,6 +194,18 @@ class FileSyncer(object):
 
         return manifest
 
+    def _should_retry(self, name):
+        if name not in self._retries:
+            self._retries[name] = 1
+        else:
+            self._retries[name] = self._retries[name] + 1
+
+        return self._retries[name] <= self._retry_limit
+
+    def _clear_retry(self, name):
+        if name in self._retries:
+            del self._retries[name]
+
     def _upload_manifest(self, data):
         driver = self._get_driver_instance()
         name = MANIFEST_FILE
@@ -200,7 +215,7 @@ class FileSyncer(object):
         driver.upload_object_via_stream(iterator=iterator, container=container,
                                         object_name=name)
 
-    def _remove_object(self, item):
+    def _remove_object(self, item, pool):
         driver = self._get_driver_instance()
         name = item['remote_name']
 
@@ -212,15 +227,26 @@ class FileSyncer(object):
 
         try:
             driver.delete_object(obj=obj)
+        except LibcloudError, e:
+            self._logger.error('Failed to remove object "%(name)s": %(error)s',
+                               {'name': name, 'error': str(e)})
+            if self._should_retry(name):
+                self._logger.info('Retrying object removal "%(name)s"',
+                    {'name': name})
+                func = lambda item: self._remove_object(item=item, pool=pool)
+                pool.spawn(func, item)
+
+            return
         except Exception, e:
             self._logger.error('Failed to remove object "%(name)s": %(error)s',
                                {'name': name, 'error': str(e)})
             return
 
+        self._clear_retry(name)
         self._removed.append(item)
         self._logger.debug('Object removed: %(name)s', {'name': name})
 
-    def _upload_object(self, item):
+    def _upload_object(self, item, pool):
         driver = self._get_driver_instance()
         name = item['remote_name']
         file_path = item['path']
@@ -233,11 +259,22 @@ class FileSyncer(object):
         try:
             driver.upload_object(file_path=file_path, container=container,
                                  object_name=name, extra=extra)
+
+        except LibcloudError, e:
+            self._logger.error('Failed to upload object "%(name)s": %(error)s',
+                {'name': name, 'error': str(e)})
+            if self._should_retry(name):
+                self._logger.info('Retrying to upload object "%(name)s"',
+                    {'name': name})
+                func = lambda item: self._upload_object(item=item, pool=pool)
+                pool.spawn(func, item)
+            return
         except Exception, e:
             self._logger.error('Failed to upload object "%(name)s": %(error)s',
                                {'name': name, 'error': str(e)})
             return
 
+        self._clear_retry(name)
         self._uploaded.append(item)
         self._logger.debug('Object uploaded: %(name)s', {'name': name})
 
@@ -258,7 +295,7 @@ class FileSyncer(object):
                                                          file_path=file_path)
 
                 if not self._include_file(remote_name):
-                    self._logger.debug('File %(name)s is excluded, skipping it', 
+                    self._logger.debug('File %(name)s is excluded, skipping it',
                                        {'name': name})
                     continue
 
