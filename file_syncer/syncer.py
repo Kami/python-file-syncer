@@ -1,3 +1,18 @@
+# Licensed to Tomaz Muraus under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# Tomaz muraus licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import time
 import os
 import hashlib
@@ -18,6 +33,7 @@ from libcloud.utils.files import exhaust_iterator
 from libcloud.storage.base import Container, Object
 from libcloud.storage.types import ContainerDoesNotExistError
 from libcloud.storage.types import ObjectDoesNotExistError
+from libcloud.common.types import LibcloudError
 
 monkey.patch_all()
 
@@ -28,7 +44,7 @@ from file_syncer.constants import MANIFEST_FILE
 class FileSyncer(object):
     def __init__(self, directory, provider_cls, username, api_key,
                  container_name, cache_path, exclude_patterns,
-                 logger, concurrency=20):
+                 logger, concurrency=20, retry_limit=3):
         self._directory = directory
         self._provider_cls = provider_cls
         self._username = username
@@ -38,6 +54,8 @@ class FileSyncer(object):
         self._exclude_patterns = exclude_patterns
         self._logger = logger
         self._concurrency = concurrency
+        self._retry_limit = retry_limit
+        self._retries = {}
 
         self._uploaded = []
         self._removed = []
@@ -123,17 +141,39 @@ class FileSyncer(object):
             # 2 - Upload manifest
 
             for item in actions['to_remove']:
-                func = lambda item: self._remove_object(item=item)
+                func = lambda item: self._remove_object(item=item, pool=pool)
                 pool.spawn(func, item)
 
             for item in actions['to_upload']:
-                func = lambda item: self._upload_object(item=item)
+                func = lambda item: self._upload_object(item=item, pool=pool)
                 pool.spawn(func, item)
 
             pool.join()
 
             manifest = self._generate_manifest(remote_files=remote_files)
             self._upload_manifest(json.dumps(manifest))
+
+            took = (time.time() - time_start)
+            self._logger.info('Synchronization complete, took: %(took)0.2f' +
+                              ' seconds', {'took': took})
+
+    def restore(self):
+        """
+        Restores a remote container to the file system
+        """
+        digest = hashlib.md5(self._directory).hexdigest()
+        lock_file_path = os.path.join(digest)
+
+        pool = Pool(self._concurrency)
+        with FileLock(lock_file_path, timeout=None):
+            # Ensure that only a single process runs at the same time
+            time_start = time.time()
+
+            for item in self._get_remote_files():
+                func = lambda item: self._download_remote_file(name=item)
+                pool.spawn(func, item)
+
+            pool.join()
 
             took = (time.time() - time_start)
             self._logger.info('Synchronization complete, took: %(took)0.2f' +
@@ -154,6 +194,18 @@ class FileSyncer(object):
 
         return manifest
 
+    def _should_retry(self, name):
+        if name not in self._retries:
+            self._retries[name] = 1
+        else:
+            self._retries[name] = self._retries[name] + 1
+
+        return self._retries[name] <= self._retry_limit
+
+    def _clear_retry(self, name):
+        if name in self._retries:
+            del self._retries[name]
+
     def _upload_manifest(self, data):
         driver = self._get_driver_instance()
         name = MANIFEST_FILE
@@ -163,7 +215,7 @@ class FileSyncer(object):
         driver.upload_object_via_stream(iterator=iterator, extra=extra,
                                         container=container, object_name=name)
 
-    def _remove_object(self, item):
+    def _remove_object(self, item, pool):
         driver = self._get_driver_instance()
         name = item['remote_name']
 
@@ -175,15 +227,26 @@ class FileSyncer(object):
 
         try:
             driver.delete_object(obj=obj)
+        except LibcloudError, e:
+            self._logger.error('Failed to remove object "%(name)s": %(error)s',
+                               {'name': name, 'error': str(e)})
+            if self._should_retry(name):
+                self._logger.info('Retrying object removal "%(name)s"',
+                    {'name': name})
+                func = lambda item: self._remove_object(item=item, pool=pool)
+                pool.spawn(func, item)
+
+            return
         except Exception, e:
             self._logger.error('Failed to remove object "%(name)s": %(error)s',
                                {'name': name, 'error': str(e)})
             return
 
+        self._clear_retry(name)
         self._removed.append(item)
         self._logger.debug('Object removed: %(name)s', {'name': name})
 
-    def _upload_object(self, item):
+    def _upload_object(self, item, pool):
         driver = self._get_driver_instance()
         name = item['remote_name']
         file_path = item['path']
@@ -196,11 +259,22 @@ class FileSyncer(object):
         try:
             driver.upload_object(file_path=file_path, container=container,
                                  object_name=name, extra=extra)
+
+        except LibcloudError, e:
+            self._logger.error('Failed to upload object "%(name)s": %(error)s',
+                {'name': name, 'error': str(e)})
+            if self._should_retry(name):
+                self._logger.info('Retrying to upload object "%(name)s"',
+                    {'name': name})
+                func = lambda item: self._upload_object(item=item, pool=pool)
+                pool.spawn(func, item)
+            return
         except Exception, e:
             self._logger.error('Failed to upload object "%(name)s": %(error)s',
                                {'name': name, 'error': str(e)})
             return
 
+        self._clear_retry(name)
         self._uploaded.append(item)
         self._logger.debug('Object uploaded: %(name)s', {'name': name})
 
@@ -221,7 +295,7 @@ class FileSyncer(object):
                                                          file_path=file_path)
 
                 if not self._include_file(remote_name):
-                    self._logger.debug('File %(name)s is excluded, skipping it', 
+                    self._logger.debug('File %(name)s is excluded, skipping it',
                                        {'name': name})
                     continue
 
@@ -257,6 +331,33 @@ class FileSyncer(object):
             raise Exception('Corrupted manifest, failed to parse it: ' + str(e))
 
         return parsed
+
+
+    def _download_remote_file(self, name):
+        """
+        Download a remote file given a name.
+        """
+
+        self._logger.debug('Downloading object: %(name)s to %(path)s',
+                {'name': name, 'path': self._directory})
+
+        # strip the leading slash if it exists in the object_name
+        local_filename = name
+        if local_filename[0] == '/':
+            local_filename = local_filename[1:]
+
+        driver = self._get_driver_instance()
+        filepath = os.path.join(self._directory, local_filename)
+
+        try:
+            obj = driver.get_object(container_name=self._container_name,
+                                    object_name=name)
+        except ObjectDoesNotExistError:
+            self._logger.debug('Object ' + name + ' doesn\'t exist')
+            return
+
+        driver.download_object(obj=obj, destination_path=filepath,
+                overwrite_existing=True, delete_on_failure=True)
 
     def _get_differences(self, local_files, remote_files):
         """
