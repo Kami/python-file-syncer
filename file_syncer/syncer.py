@@ -21,6 +21,7 @@ import fnmatch
 
 from StringIO import StringIO
 from itertools import chain
+from collections import defaultdict
 
 try:
     import simplejson as json
@@ -55,7 +56,7 @@ class FileSyncer(object):
         self._logger = logger
         self._concurrency = concurrency
         self._retry_limit = retry_limit
-        self._retries = {}
+        self._retries = defaultdict(int)
 
         self._uploaded = []
         self._removed = []
@@ -195,11 +196,7 @@ class FileSyncer(object):
         return manifest
 
     def _should_retry(self, name):
-        if name not in self._retries:
-            self._retries[name] = 1
-        else:
-            self._retries[name] = self._retries[name] + 1
-
+        self._retries[name] = self._retries[name] + 1
         return self._retries[name] <= self._retry_limit
 
     def _clear_retry(self, name):
