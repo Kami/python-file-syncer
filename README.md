@@ -12,12 +12,14 @@ storage providers supported by [Libcloud](http://libcloud.apache.org/).
 ## Usage
 
 ```shell
-file-syncer --help```
+file-syncer --help
+```
 
 ### Synchronizing files from a local directory to a remote server
 
 ```shell
 file-syncer --username=<api username> --key=<api key or password> \
+            --provider=<libcloud provider constant - e.g. CLOUDFILES_US> \
             --container-name=<target container name>  \
             --directory=<path to directory used to synchronize>
 ```
@@ -26,6 +28,7 @@ file-syncer --username=<api username> --key=<api key or password> \
 
 ```shell
 file-syncer --username=<api username> --key=<api key or password> \
+             --provider=<libcloud provider constant - e.g. CLOUDFILES_US> \
             --container-name=<remote container name>  \
             --directory=<path to directory where the files will be restored to>
 ```
