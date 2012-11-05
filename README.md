@@ -28,7 +28,8 @@ file-syncer --username=<api username> --key=<api key or password> \
 
 ```shell
 file-syncer --username=<api username> --key=<api key or password> \
-             --provider=<libcloud provider constant - e.g. CLOUDFILES_US> \
+            --restore \
+            --provider=<libcloud provider constant - e.g. CLOUDFILES_US> \
             --container-name=<remote container name>  \
             --directory=<path to directory where the files will be restored to>
 ```
