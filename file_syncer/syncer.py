@@ -109,7 +109,7 @@ class FileSyncer(object):
 
         return True
 
-    def sync(self):
+    def sync(self, delete=False):
         """
         Synchronizes remote directory with a local one.
         """
@@ -131,7 +131,7 @@ class FileSyncer(object):
 
             differences = self._get_differences(local_files=local_files,
                                                 remote_files=remote_files)
-            actions = self._calculate_actions(differences=differences)
+            actions = self._calculate_actions(differences=differences, delete=delete)
 
             self._logger.info('To remove: %(to_remove)s, to upload: %(to_upload)s',
                               {'to_remove': len(actions['to_remove']),
@@ -141,9 +141,10 @@ class FileSyncer(object):
             # 1 - Upload new or changed files and remove deleted ones
             # 2 - Upload manifest
 
-            for item in actions['to_remove']:
-                func = lambda item: self._remove_object(item=item, pool=pool)
-                pool.spawn(func, item)
+            if delete:
+                for item in actions['to_remove']:
+                    func = lambda item: self._remove_object(item=item, pool=pool)
+                    pool.spawn(func, item)
 
             for item in actions['to_upload']:
                 func = lambda item: self._upload_object(item=item, pool=pool)
@@ -388,7 +389,7 @@ class FileSyncer(object):
 
         return result
 
-    def _calculate_actions(self, differences):
+    def _calculate_actions(self, differences, delete=False):
         """
         Return actions which need to be performed to make the remote copy match
         a local one.
@@ -399,7 +400,8 @@ class FileSyncer(object):
                           differences['modified'].values()):
             result['to_upload'].append(item)
 
-        for item in differences['removed'].values():
-            result['to_remove'].append(item)
+        if delete:
+            for item in differences['removed'].values():
+                result['to_remove'].append(item)
 
         return result
