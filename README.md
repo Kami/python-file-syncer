@@ -7,6 +7,7 @@ storage providers supported by [Libcloud](http://libcloud.apache.org/).
 
 * Synchronize files from a local directory to one of the supported providers
   * User can specify a list of filename patterns which should be excluded
+  * User can specify to delete files in the container that do not exist locally
 * Restore files from the remote server to a local directory
 
 ## Usage
@@ -21,7 +22,8 @@ file-syncer --help
 file-syncer --username=<api username> --key=<api key or password> \
             --provider=<libcloud provider constant - e.g. CLOUDFILES_US> \
             --container-name=<target container name>  \
-            --directory=<path to directory used to synchronize>
+            --directory=<path to directory used to synchronize> \
+            --delete
 ```
 
 ### Restoring files from the remote server to a local directory
