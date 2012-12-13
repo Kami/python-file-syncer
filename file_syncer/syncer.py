@@ -141,10 +141,9 @@ class FileSyncer(object):
             # 1 - Upload new or changed files and remove deleted ones
             # 2 - Upload manifest
 
-            if delete:
-                for item in actions['to_remove']:
-                    func = lambda item: self._remove_object(item=item, pool=pool)
-                    pool.spawn(func, item)
+            for item in actions['to_remove']:
+                func = lambda item: self._remove_object(item=item, pool=pool)
+                pool.spawn(func, item)
 
             for item in actions['to_upload']:
                 func = lambda item: self._upload_object(item=item, pool=pool)
