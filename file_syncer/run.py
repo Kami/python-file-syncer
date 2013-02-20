@@ -28,7 +28,7 @@ from file_syncer.syncer import FileSyncer
 SUPPORTED_PROVIDERS = [p for p in Provider.__dict__.keys() if not
                        p.startswith('__')]
 PROVIDER_MAP = dict([(k, v) for k, v in Provider.__dict__.iteritems()
-                     if not p.startswith('__')])
+                     if not k.startswith('__')])
 REQUIRED_OPTIONS = [('username', 'api_username'), ('key', 'api_key'),
                     ('container-name', 'container_name'),
                     ('directory', 'directory')]
