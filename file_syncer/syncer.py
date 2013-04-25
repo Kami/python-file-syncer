@@ -345,6 +345,11 @@ class FileSyncer(object):
 
         driver = self._get_driver_instance()
         filepath = os.path.join(self._directory, local_filename)
+        dirname = os.path.dirname(filepath)
+
+        # make sure the path exists
+        if dirname and not os.path.exists(dirname):
+            os.makedirs(dirname)
 
         try:
             obj = driver.get_object(container_name=self._container_name,
