@@ -1,2 +1,4 @@
 apache-libcloud>=0.10.1
 gevent
+
+flake8
