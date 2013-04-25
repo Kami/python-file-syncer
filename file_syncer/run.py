@@ -61,10 +61,10 @@ def run():
                            'exclude')
     parser.add_option('--log-level', dest='log_level', default='INFO',
                       help='Log level')
-    parser.add_option('--delete', dest='delete', action='store_true', 
+    parser.add_option('--delete', dest='delete', action='store_true',
                       help='delete extraneous files from dest containers',
                       default=False)
-   
+
     (options, args) = parser.parse_args()
 
     for option_name, key in REQUIRED_OPTIONS:
@@ -103,6 +103,6 @@ def run():
                         logger=logger,
                         concurrency=int(options.concurrency))
     if options.restore:
-      syncer.restore()
+        syncer.restore()
     else:
-      syncer.sync(options.delete)
+        syncer.sync(options.delete)

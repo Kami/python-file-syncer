@@ -77,7 +77,8 @@ class FileSyncer(object):
         """
         if not os.path.exists(self._cache_path):
             self._logger.debug('Cache directory doesn\'t exist ' +
-              '(%(directory)s), creating it...', {'directory': self._cache_path})
+                               '(%(directory)s), creating it...',
+                               {'directory': self._cache_path})
             os.makedirs(self._cache_path)
 
     def _setup_container(self):
@@ -87,11 +88,13 @@ class FileSyncer(object):
         driver = self._get_driver_instance()
 
         try:
-            container = driver.get_container(container_name=self._container_name)
+            container = \
+                driver.get_container(container_name=self._container_name)
         except ContainerDoesNotExistError:
             self._logger.debug('Container "%(name)s" doesn\'t exist, ' +
-                    'creating it..', {'name': self._container_name})
-            container = driver.create_container(container_name=self._container_name)
+                               'creating it..', {'name': self._container_name})
+            container = \
+                driver.create_container(container_name=self._container_name)
 
         self._container = container
 
@@ -131,9 +134,11 @@ class FileSyncer(object):
 
             differences = self._get_differences(local_files=local_files,
                                                 remote_files=remote_files)
-            actions = self._calculate_actions(differences=differences, delete=delete)
+            actions = self._calculate_actions(differences=differences,
+                                              delete=delete)
 
-            self._logger.info('To remove: %(to_remove)s, to upload: %(to_upload)s',
+            self._logger.info(('To remove: %(to_remove)s, ',
+                              'to upload: %(to_upload)s'),
                               {'to_remove': len(actions['to_remove']),
                                'to_upload': len(actions['to_upload'])})
 
@@ -207,7 +212,8 @@ class FileSyncer(object):
         driver = self._get_driver_instance()
         name = MANIFEST_FILE
         extra = {'content_type': 'application/json'}
-        container = Container(name=self._container_name, extra=None, driver=driver)
+        container = Container(name=self._container_name, extra=None,
+                              driver=driver)
         iterator = StringIO(data)
         driver.upload_object_via_stream(iterator=iterator, extra=extra,
                                         container=container, object_name=name)
@@ -218,7 +224,8 @@ class FileSyncer(object):
 
         self._logger.debug('Removing object: %(name)s', {'name': name})
 
-        container = Container(name=self._container_name, extra={}, driver=driver)
+        container = Container(name=self._container_name, extra={},
+                              driver=driver)
         obj = Object(name=name, size=None, hash=None, extra=None,
                      meta_data=None, container=container, driver=driver)
 
@@ -229,7 +236,7 @@ class FileSyncer(object):
                                {'name': name, 'error': str(e)})
             if self._should_retry(name):
                 self._logger.info('Retrying object removal "%(name)s"',
-                    {'name': name})
+                                  {'name': name})
                 func = lambda item: self._remove_object(item=item, pool=pool)
                 pool.spawn(func, item)
 
@@ -251,7 +258,8 @@ class FileSyncer(object):
         self._logger.debug('Uploading object: %(name)s', {'name': name})
 
         extra = {'content_type': 'application/octet-stream'}
-        container = Container(name=self._container_name, extra=None, driver=driver)
+        container = Container(name=self._container_name, extra=None,
+                              driver=driver)
 
         try:
             driver.upload_object(file_path=file_path, container=container,
@@ -259,10 +267,10 @@ class FileSyncer(object):
 
         except LibcloudError, e:
             self._logger.error('Failed to upload object "%(name)s": %(error)s',
-                {'name': name, 'error': str(e)})
+                               {'name': name, 'error': str(e)})
             if self._should_retry(name):
                 self._logger.info('Retrying to upload object "%(name)s"',
-                    {'name': name})
+                                  {'name': name})
                 func = lambda item: self._upload_object(item=item, pool=pool)
                 pool.spawn(func, item)
             return
@@ -292,15 +300,16 @@ class FileSyncer(object):
                                                          file_path=file_path)
 
                 if not self._include_file(remote_name):
-                    self._logger.debug('File %(name)s is excluded, skipping it',
+                    self._logger.debug('File %(name)s is excluded skipping it',
                                        {'name': name})
                     continue
 
                 mtime = os.path.getmtime(file_path)
                 md5_hash = None
 
-                item = {'name': name, 'remote_name': remote_name, 'path': file_path,
-                        'last_modified': mtime, 'md5_hash': md5_hash}
+                item = {'name': name, 'remote_name': remote_name,
+                        'path': file_path, 'last_modified': mtime,
+                        'md5_hash': md5_hash}
                 result[remote_name] = item
 
         return result
@@ -325,10 +334,10 @@ class FileSyncer(object):
         try:
             parsed = json.loads(data)
         except Exception, e:
-            raise Exception('Corrupted manifest, failed to parse it: ' + str(e))
+            raise Exception('Corrupted manifest, failed to parse it: ' +
+                            str(e))
 
         return parsed
-
 
     def _download_remote_file(self, name):
         """
@@ -336,7 +345,7 @@ class FileSyncer(object):
         """
 
         self._logger.debug('Downloading object: %(name)s to %(path)s',
-                {'name': name, 'path': self._directory})
+                           {'name': name, 'path': self._directory})
 
         # strip the leading slash if it exists in the object_name
         local_filename = name
@@ -359,7 +368,8 @@ class FileSyncer(object):
             return
 
         driver.download_object(obj=obj, destination_path=filepath,
-                overwrite_existing=True, delete_on_failure=True)
+                               overwrite_existing=True,
+                               delete_on_failure=True)
 
     def _get_differences(self, local_files, remote_files):
         """
