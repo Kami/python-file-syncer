@@ -52,7 +52,7 @@ setup(
         'file_syncer': 'file_syncer'
     },
     install_requires=[
-        'apache-libcloud>=0.10.1',
+        'apache-libcloud>=0.13.0',
         'gevent'
     ],
     url='https://github.com/Kami/python-file-syncer/',
