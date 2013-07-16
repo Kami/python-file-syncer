@@ -45,9 +45,10 @@ from file_syncer.constants import MANIFEST_FILE
 class FileSyncer(object):
     def __init__(self, directory, provider_cls, username, api_key,
                  container_name, cache_path, exclude_patterns,
-                 logger, concurrency=20, retry_limit=3):
+                 logger, region=None, concurrency=20, retry_limit=3):
         self._directory = directory
         self._provider_cls = provider_cls
+        self._region = region
         self._username = username
         self._api_key = api_key
         self._container_name = container_name
@@ -99,7 +100,10 @@ class FileSyncer(object):
         self._container = container
 
     def _get_driver_instance(self):
-        driver = self._provider_cls(self._username, self._api_key)
+        driver = self._provider_cls(
+            self._username, self._api_key,
+            ex_force_service_region=self._region
+        )
         return driver
 
     def _include_file(self, file_name):
