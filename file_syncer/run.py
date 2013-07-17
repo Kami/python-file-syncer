@@ -39,6 +39,9 @@ def run():
     parser = OptionParser(usage=usage)
     parser.add_option('--provider', dest='provider', default='CLOUDFILES_US',
                       help='Provider to use')
+    parser.add_option('--region', dest='region', default=None,
+                      help='Region to use if a Libcloud driver supports \
+                        multiple regions (e.g. ORD for CloudFiles provider)')
     parser.add_option('--username', dest='api_username',
                       help='API username')
     parser.add_option('--key', dest='api_key',
@@ -95,6 +98,8 @@ def run():
 
     syncer = FileSyncer(directory=directory,
                         provider_cls=get_driver(provider),
+                        provider=provider,
+                        region=options.region,
                         username=options.api_username,
                         api_key=options.api_key,
                         container_name=options.container_name,
