@@ -110,7 +110,7 @@ class FileSyncer(object):
         args = (self._username, self._api_key)
         kwargs = {}
 
-        force_region = PROVIDER_HAS_REGION.get(self._provider)
+        force_region = PROVIDER_HAS_REGION.get(self._provider, None)
         if self._region and force_region:
             kwargs[force_region] = self._region
 
