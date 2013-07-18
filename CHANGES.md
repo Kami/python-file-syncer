@@ -1,3 +1,11 @@
+0.4.1 - 2013-07-19
+
+* Allow user to specify `--no-content-type` option. If this option is specified,
+  program won't automatically send `application/octet-stream` Content-Type
+  header with each file, but it will use automatic content type detection
+  from the underlying Libcloud library. (#9)
+  [Alex Meng]
+
 0.4.0 - 2013-07-17
 
 * Allow user to specify a `--region` option for the provider drivers which
