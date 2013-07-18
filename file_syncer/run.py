@@ -68,7 +68,11 @@ def run():
                       help='delete extraneous files from dest containers',
                       default=False)
     parser.add_option('--no-content-type', dest='no_content_type',
-                      help='do not specify any content type')
+                      default=False, action='store_true',
+                      help='Don\'t automatically specify \'application/' +
+                           'octet-stream\' content-type for every file. Use ' +
+                           'automatic file type detection based on the file ' +
+                           'extension')
 
     (options, args) = parser.parse_args()
 
