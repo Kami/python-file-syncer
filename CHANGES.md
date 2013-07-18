@@ -1,7 +1,15 @@
-0.3.2 - 2013-04.24
+0.4.0 - 2013-07-17
+
+* Allow user to specify a `--region` option for the provider drivers which
+  support multiple regions. (#8)
+  [Samuel Toriel]
+
+* Bump minimum version for Libcloud dependency to 0.13.0.
+
+0.3.2 - 2013-04-24
 
 * Create a local directory hierarchy if it doesn't exist when using a restore
-  option.
+  option. (#7)
   [Ryan Philips]
 
 0.3.1 - 2013-02-20
@@ -10,13 +18,13 @@
 
 0.2.1 - 2012-09-14
 
-* Add support for retries to all the remote operations.
+* Add support for retries to all the remote operations. (#4)
   [Ryan Philips]
 
 0.2.0 - 2012-08-23
 
-* Add restore functionality
-  [Ryan Philips]
+* Add restore functionality (#3)
+ [Ryan Philips]
 
 0.1.1 - 2012-07-24
 

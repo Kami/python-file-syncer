@@ -1,4 +1,4 @@
-apache-libcloud>=0.10.1
+apache-libcloud>=0.13.0
 gevent
 
 flake8

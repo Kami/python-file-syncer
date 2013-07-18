@@ -36,6 +36,17 @@ file-syncer --username=<api username> --key=<api key or password> \
             --directory=<path to directory where the files will be restored to>
 ```
 
+### Specifying a region with CloudFiles provider
+
+```shell
+file-syncer --username=<api username> --key=<api key or password> \
+            --provider=CLOUDFILES_US \
+            --region=ord  \
+            --container-name=<target container name>  \
+            --directory=<path to directory used to synchronize> \
+            --delete
+```
+
 ## License
 
 This library is distributed under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).
