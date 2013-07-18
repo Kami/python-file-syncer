@@ -67,6 +67,12 @@ def run():
     parser.add_option('--delete', dest='delete', action='store_true',
                       help='delete extraneous files from dest containers',
                       default=False)
+    parser.add_option('--no-content-type', dest='no_content_type',
+                      default=False, action='store_true',
+                      help='Don\'t automatically specify \'application/' +
+                           'octet-stream\' content-type for every file. Use ' +
+                           'automatic file type detection based on the file ' +
+                           'extension')
 
     (options, args) = parser.parse_args()
 
@@ -106,7 +112,8 @@ def run():
                         cache_path=options.cache_path,
                         exclude_patterns=exclude_patterns,
                         logger=logger,
-                        concurrency=int(options.concurrency))
+                        concurrency=int(options.concurrency),
+                        no_content_type=options.no_content_type)
     if options.restore:
         syncer.restore()
     else:
