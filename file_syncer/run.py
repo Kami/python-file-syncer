@@ -73,6 +73,10 @@ def run():
                            'octet-stream\' content-type for every file. Use ' +
                            'automatic file type detection based on the file ' +
                            'extension')
+    parser.add_option('--follow_symlinks', dest='follow_symlinks',
+                      default=False, action='store_true',
+                      help='Visit directories pointed to by symlinks, ' +
+                           'on systems that support them')
 
     (options, args) = parser.parse_args()
 
@@ -113,7 +117,8 @@ def run():
                         exclude_patterns=exclude_patterns,
                         logger=logger,
                         concurrency=int(options.concurrency),
-                        no_content_type=options.no_content_type)
+                        no_content_type=options.no_content_type,
+                        follow_symlinks=options.follow_symlinks)
     if options.restore:
         syncer.restore()
     else:
