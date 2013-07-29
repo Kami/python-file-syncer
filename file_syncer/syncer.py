@@ -47,7 +47,7 @@ class FileSyncer(object):
                  container_name, cache_path, exclude_patterns,
                  logger, provider=None, region=None,
                  concurrency=20, retry_limit=3,
-                 no_content_type=False, follow_symlinks=True):
+                 no_content_type=False, ignore_symlinks=False):
         self._directory = directory
         self._provider_cls = provider_cls
         self._provider = provider
@@ -62,7 +62,7 @@ class FileSyncer(object):
         self._retry_limit = retry_limit
         self._retries = defaultdict(int)
         self._no_content_type = no_content_type
-        self._follow_symlinks = follow_symlinks
+        self._ignore_symlinks = ignore_symlinks
 
         self._uploaded = []
         self._removed = []
@@ -316,7 +316,7 @@ class FileSyncer(object):
         result = {}
 
         base_path = os.path.abspath(directory)
-        for (dirpath, dirnames, filenames) in os.walk(directory, followlinks=self._follow_symlinks):
+        for (dirpath, dirnames, filenames) in os.walk(directory, followlinks=(not self._ignore_symlinks)):
             for name in filenames:
 
                 file_path = os.path.join(base_path, dirpath, name)
