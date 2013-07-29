@@ -47,7 +47,7 @@ class FileSyncer(object):
                  container_name, cache_path, exclude_patterns,
                  logger, provider=None, region=None,
                  concurrency=20, retry_limit=3,
-                 no_content_type=False, follow_symlinks=False):
+                 no_content_type=False, follow_symlinks=True):
         self._directory = directory
         self._provider_cls = provider_cls
         self._provider = provider

@@ -74,7 +74,7 @@ def run():
                            'automatic file type detection based on the file ' +
                            'extension')
     parser.add_option('--follow_symlinks', dest='follow_symlinks',
-                      default=False, action='store_true',
+                      default=True, action='store_true',
                       help='Visit directories pointed to by symlinks, ' +
                            'on systems that support them')
 
