@@ -67,7 +67,7 @@ def run():
     parser.add_option('--delete', dest='delete', action='store_true',
                       help='delete extraneous files from dest containers',
                       default=False)
-    parser.add_option('--no-content-type', dest='no_content_type',
+    parser.add_option('--auto-content-type', dest='auto_content_type',
                       default=False, action='store_true',
                       help='Don\'t automatically specify \'application/' +
                            'octet-stream\' content-type for every file. Use ' +

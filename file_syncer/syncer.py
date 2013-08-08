@@ -47,7 +47,7 @@ class FileSyncer(object):
                  container_name, cache_path, exclude_patterns,
                  logger, provider=None, region=None,
                  concurrency=20, retry_limit=3,
-                 no_content_type=False, ignore_symlinks=False):
+                 auto_content_type=False, ignore_symlinks=False):
         self._directory = directory
         self._provider_cls = provider_cls
         self._provider = provider
@@ -61,7 +61,7 @@ class FileSyncer(object):
         self._concurrency = concurrency
         self._retry_limit = retry_limit
         self._retries = defaultdict(int)
-        self._no_content_type = no_content_type
+        self._auto_content_type = auto_content_type
         self._ignore_symlinks = ignore_symlinks
 
         self._uploaded = []
@@ -279,7 +279,7 @@ class FileSyncer(object):
         self._logger.debug('Uploading object: %(name)s', {'name': name})
 
         extra = {}
-        if not self._no_content_type:
+        if not self._auto_content_type:
             extra['content_type'] = 'application/octet-stream'
 
         container = Container(name=self._container_name, extra=None,

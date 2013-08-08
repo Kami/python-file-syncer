@@ -1,3 +1,7 @@
+0.4.2 - in development
+
+* Rename `--no-content-type` option to `--auto-content-type`.
+
 0.4.1 - 2013-07-19
 
 * Allow user to specify `--no-content-type` option. If this option is specified,
