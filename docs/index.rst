@@ -86,5 +86,5 @@ License
 File syncer is distributed under the `Apache 2.0 license`_.
 
 .. _`Hosting APT repository on Rackspace CloudFiles`: http://www.tomaz.me/2012/07/22/hosting-apt-repository-on-rackspace-cloud-files.html
-.. _`CHANGES file`: https://github.com/Kami/python-file-syncer/blob/master/CHANGES.md
+.. _`CHANGES file`: https://github.com/Kami/python-file-syncer/blob/master/CHANGES.rst
 .. _`Apache 2.0 license`: https://www.apache.org/licenses/LICENSE-2.0.html
