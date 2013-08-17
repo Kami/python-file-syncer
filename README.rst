@@ -1,7 +1,7 @@
 File Syncer
 ===========
 
-.. image:: https://badge.fury.io/py/file_syncer
+.. image:: https://badge.fury.io/py/file_syncer.png
     :target: https://badge.fury.io/py/file_syncer
 
 .. image:: https://secure.travis-ci.org/Kami/python-file-syncer.png?branch=master
