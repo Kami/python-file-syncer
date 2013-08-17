@@ -44,6 +44,8 @@ class Pep8Command(Command):
 setup(
     name='file_syncer',
     version=read_version_string(),
+    long_description=open('README.rst').read() + '\n\n' +
+    open('CHANGES.rst').read(),
     scripts=[os.path.join(os.getcwd(), 'bin/file-syncer')],
     packages=[
         'file_syncer'
@@ -64,5 +66,18 @@ setup(
                  'Libcloud.',
     cmdclass={
         'pep8': Pep8Command
-    }
+    },
+    classifiers=[
+        'Development Status :: 4 - Beta',
+        'Environment :: Console',
+        'Intended Audience :: Developers',
+        'Intended Audience :: System Administrators',
+        'Operating System :: OS Independent',
+        'License :: OSI Approved :: Apache Software License',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: Implementation :: PyPy',
+        'Topic :: Software Development :: Libraries :: Python Modules',
+    ]
 )
