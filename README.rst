@@ -1,6 +1,15 @@
 File Syncer
 ===========
 
+.. image:: https://badge.fury.io/py/file_syncer
+    :target: https://badge.fury.io/py/file_syncer
+
+.. image:: https://secure.travis-ci.org/Kami/python-file-syncer.png?branch=master
+        :target: http://travis-ci.org/Kami/python-file-syncer
+
+.. image:: https://pypip.in/d/file_syncer/badge.png
+        :target: https://crate.io/packages/file_syncer
+
 Python program which synchronizes files from a local directory to one of the
 cloud object storage providers supported by `Libcloud`_.
 and vice-versa.
