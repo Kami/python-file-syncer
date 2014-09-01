@@ -32,7 +32,7 @@ Git repository:
 
 .. sourcecode:: bash
 
-    pip install -e https://github.com/Kami/python-file-syncer.git@master#egg=file_syncer
+    pip install -e git+https://github.com/Kami/python-file-syncer.git@master#egg=file_syncer
 
 Usage
 =====
